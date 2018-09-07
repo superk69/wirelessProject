@@ -55,7 +55,6 @@ var strategy = new JwtStrategy(jwtOptions, function(jwt_payload, next) {
     //console.log('payload received', jwt_payload);
     MongoClient.connect(url, function(err, db) {
         db.collection("user").find({email: jwt_payload.email}).toArray((err,data)=> {
-                
             if (data) {
                 next(null, data);
               } else {
@@ -76,7 +75,6 @@ app.post("/createjwt",jsonparser,passport.authenticate('jwt', { session: false }
     }
     MongoClient.connect(url, function(err, db) {
         db.collection("user").find({email: find}).toArray((err,data)=> {
-                
             if( ! data ){
             res.status(401).json({message:"no such user found"});
             }
@@ -85,12 +83,7 @@ app.post("/createjwt",jsonparser,passport.authenticate('jwt', { session: false }
             var token = jwt.sign(payload, jwtOptions.secretOrKey);
             res.json({message: "ok", token: token});
         });
-
     });
-
-
-
-
   });
 
 
@@ -98,7 +91,6 @@ MongoClient.connect(url, function(err, db) {
 /////////////////////////////////// IO ZONE //////
 cron.schedule('*/15 * * * *', function(){
     console.log('running a task every 15 minutes');
-
     db.collection("realtime").find().forEach(function(doc){
         var insertObj_ = {
             home_id : doc.home_id,
@@ -108,12 +100,10 @@ cron.schedule('*/15 * * * *', function(){
         }
         db.collection("datalog").insert(insertObj_);
      });
-    
   });
 
   cron.schedule('*/5 * * * *', function(){
     console.log('running noti every 15 minutes');
-
     db.collection("realtime").find().forEach(function(doc){
         var noti = new Date(doc.date_added).getTime() > (new Date().getTime() - 120 * 1000)
         var insertObj_ = {
@@ -130,7 +120,6 @@ cron.schedule('*/15 * * * *', function(){
                     if(data[0].read){
                         db.collection("notification").insert(insertObj_);
                         console.log("push noti",insertObj_);
-                        
                     }
                 }else{
                     db.collection("notification").insert(insertObj_);
@@ -138,35 +127,27 @@ cron.schedule('*/15 * * * *', function(){
                 }
             })
         }
-        
      });
-    
   });
 
 
 
 io.sockets.on('connection', function (socket) {
- 
     socket.emit('startsocket','welcome to timeserver');
 
     socket.on('realtimedatalog', function (data) {
         console.log("start io datalog");
-        
              startSendTime(data);
     });
     socket.on('publicrealtime', function (data) {
         console.log("start io publicrealtime");
-        
              startSendRealtime(data);
     });
     socket.on('ongraph', function (data) {
         console.log("start io graph");
-        
              startSendGraph(data);
     });
 
-    
-                
                     function startSendTime(data){
                             var query = { 'home_id' : data };
                             db.collection("deviceinfo").find(query).toArray((err,data)=> {
@@ -197,8 +178,6 @@ io.sockets.on('connection', function (socket) {
                                                 socket.emit('outputlog',dataoutput);
                                                 //console.log(dataoutput);
                                                 //console.log("\n\n\n\n");
-                                                
-                                                                               
                                             }                    
                                     }); 
                                 }); 
@@ -208,13 +187,11 @@ io.sockets.on('connection', function (socket) {
 
                     function startSendRealtime(data){
                             var query = { 'device_public' : "สาธารณะ"};
-                           
                             db.collection("deviceinfo").find(query).toArray((err,data)=> {
                                 var dataoutput=[]
                                 var pointer=0;
                                 var me = this
                                 var home_name ;
-                                
                                     data.forEach(el=>{                           
                                         var queryres = { 'device_id' : el.device_id };
                                         var datatype  = el
@@ -226,11 +203,9 @@ io.sockets.on('connection', function (socket) {
                                                 // dataoutput[pointer].value = datares[0].value;
                                                 // dataoutput[noti].value = noti;
                                                 console.log("datares home",datares[0].home_id);
-                                                
                                                 db.collection("homeinfo").find({home_id:datares[0].home_id}).toArray((err,datahome)=> {
                                                     //home_name = datahome[0].home_name
                                                     console.log("datahome",datahome[0].home_name);
-                                                    
                                                  dataoutput.push( {
                                                      'home_name' : datahome[0].home_name,
                                                      'device_id' : datatype.device_id,
@@ -242,20 +217,13 @@ io.sockets.on('connection', function (socket) {
                                                })
                                                 if(dataoutput.length==data.length){
                                                     //console.log("public",dataoutput);
-                                                    
                                                     socket.emit('publiclog',dataoutput);
                                                     //console.log(dataoutput);
                                                     //console.log("\n\n\n\n");
-                                                    
-                                                                                   
                                                 } 
                                             });                   
                                         }); 
                                     }); 
-                                    
-                                
-                                //console.log("public_list",data);
-                                
                             });
                         setTimeout(startSendRealtime,30000,data);
                     }
@@ -272,24 +240,14 @@ io.sockets.on('connection', function (socket) {
                                 db.collection("datalog").find(queryres,{ sort : { $natural : -1 }, limit : 10 }).toArray((err,datares)=> {
                                          dataoutput.push(datares)
                                         if(dataoutput.length==data.length){
-                            
                                             socket.emit('graph',dataoutput);
-                                            //console.log(dataoutput);
-                                            //console.log("\n\n\n\n");
-                                            
-                                                                           
                                         }                    
                                 }); 
                             }); 
                         });
                     setTimeout(startSendGraph,600000,data);
                     }
-                //
-
 });
-
-
-
 
 });
 
@@ -310,17 +268,12 @@ app.get('/notification/:email?',cors(),passport.authenticate('jwt', { session: f
                     db.collection("homeinfo").find(query).forEach(function(doc){
                         console.log("getnoti home",doc.home_id);
                        homelist.push(doc.homeid)
-
-                        
                         db.collection("notification").find({'home_id':doc.home_id,'read':false}).count().then((cnt)=>{
                             if(cnt>0){
                                 let j=1
                         db.collection("notification").find({'home_id':doc.home_id,'read':false}).forEach(function(docs){
                             console.log("getnoti data",'doc_',count,"home",doc.home_id);
-                            //if(docs.read==false){
                                 arr.push(docs)
-                            //}
-                            
                             console.log(i,count,j,cnt);
                             j++
                             if(j==cnt){
@@ -337,8 +290,6 @@ app.get('/notification/:email?',cors(),passport.authenticate('jwt', { session: f
                     })
                     console.log(homelist)
                 });
-         
-               
             }
             });
     }else{
@@ -358,10 +309,7 @@ app.get('/history/:id',cors(),jsonparser,(req,res)=>{
                 console.log('Query',query);
                 db.collection("datalog").find(query).toArray().then((count)=>{
                     res.send(count)
-                    
                 });
-         
-               
             }
             });
     }else{
@@ -391,7 +339,6 @@ app.post('/notification/:email?',cors(),passport.authenticate('jwt', { session: 
                                 if (err) throw err;
                                 console.log(obj.result.n + " document(s) deleted");
                               });
-                            
                             console.log(i,count,j,len(docs));
                             j++
                             if(i==count&&j==len(docs)){
@@ -401,8 +348,6 @@ app.post('/notification/:email?',cors(),passport.authenticate('jwt', { session: 
                         i++
                     })
                 });
-         
-               
             }
             });
     }else{
@@ -428,7 +373,6 @@ app.get('/home/:email?',cors(),passport.authenticate('jwt', { session: false }),
                         //console.log(JSON.stringify(data));
                          res.send(data);
                     }
-                  
                 });
             }
             });
@@ -459,7 +403,6 @@ app.put('/home',jsonparser,cors(),passport.authenticate('jwt', { session: false 
     MongoClient.connect(url, function(err, db) {
         console.log('connected!!!... Sending...');
             if (err){ vm.sendStatus(400); }
-                
                 db.collection("homeinfo").insertOne(insertobj, function(err, res) {
                     if (err){ 
                         console.log('cannot insert...');
@@ -539,7 +482,6 @@ app.get('/edithome/:home_id?',cors(),jsonparser,passport.authenticate('jwt', { s
                         //console.log(JSON.stringify(data));
                          res.send(data);
                     }
-                  
                 });
             }
             });
@@ -565,7 +507,6 @@ app.get('/publichome/:home_id?',cors(),jsonparser,passport.authenticate('jwt', {
                         //console.log(JSON.stringify(data));
                          res.send(data);
                     }
-                  
                 });
             }
             });
@@ -588,7 +529,6 @@ app.get('/console/:home_id?',cors(),passport.authenticate('jwt', { session: fals
                     }else{
                          res.send(data);
                     }
-                  
                 });
             }
             });
