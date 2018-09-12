@@ -14,7 +14,7 @@ export const store = new Vuex.Store({
         subtitle : '',
         subtext : '',
         value  : null,
-        host : "localhost:3000",
+        host : "202.28.49.80:3000",
         component : 1,
         color_component : '#FFF',
         x : 0,
